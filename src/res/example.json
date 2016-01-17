@@ -1,0 +1,42 @@
+{
+    "skeletons": {
+        "1": {
+            "connectors": {
+                "3": {
+                    "location": [ 614332, 169788, 87220 ],
+                    "postsynaptic_to": [],
+                    "presynaptic_to": [ 5 ]
+                }
+            },
+            "treenodes": {
+                "4": {
+                    "location": [ 613724, 168604, 87200 ],
+                    "parent_id": null
+                },
+                "5": {
+                    "location": [ 615420, 169884, 87220 ],
+                    "parent_id": 4
+                }
+            }
+        },
+        "2": {
+            "connectors": {
+                "3": {
+                    "location": [ 614332, 169788, 87220 ],
+                    "postsynaptic_to": [ 7 ],
+                    "presynaptic_to": []
+                }
+            },
+            "treenodes": {
+                "6": {
+                    "location": [ 613980, 169116, 87200 ],
+                    "parent_id": null
+                },
+                "7": {
+                    "location": [ 614812, 168668, 87220 ],
+                    "parent_id": 6 
+                }
+            }
+        }
+    }
+}
