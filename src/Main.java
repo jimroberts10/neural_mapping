@@ -15,27 +15,36 @@ public class Main {
 		File jsonData3 = new File("src\\res\\kc_tree_geometry.json");
 		File jsonData4 = new File("src\\res\\kc_pn_tree_geometry.json");
 		
-<<<<<<< HEAD
 		//Test creating neuron-network data structure
 		NeuralNet testnet = new NeuralNet(jsonData3);
+		NeuralNet jimnet = new NeuralNet(jsonData3);
 		System.out.println("");
 		int[] skeleton_keys = testnet.getKeys();
 		
+		
 		//Connect the treenodes in each neuron
 		link_nodes(testnet);
+		link_nodes(jimnet);
+		
+		Skeleton neuron = testnet.getSkeleton(0);
+		Skeleton noron = jimnet.getSkeleton(0);
+		
+		
+		
+		//Connect connectors to nodes
 		link_connectors(testnet);
 		
-		Skeleton neuron = testnet.getSkeleton(0);
-		Treenode node = neuron.getTreenode(0);
-		node.printContents();
-		while(node.getChild()!=null){
-			node = node.getChild(0);
-			node.printContents();
+		for(int i = 0; i< neuron.getConnectors().length; i++){
+			System.out.print("===========================================\n=====================\n");
+			System.out.println(neuron.getConnectors().length);
+			System.out.println("i: " + i);
+			noron.getConnector(i).printContents();
+			System.out.print("===becomes===\n");
+			neuron.getConnector(i).printContents();
 		}
 		
-		/*
-		//do sample calculations on a neuron
-		Skeleton neuron = testnet.getSkeleton(0);
+		//Confirm that connectors are now connected
+		Connector connector = neuron.getConnector(0);
 		
 		//calculate bounding box
 		int[] bounding_box = calculate_bounding_box(neuron); //just do for 1 skeleton to show this works
@@ -51,7 +60,6 @@ public class Main {
 		System.out.print("Length to diagonals for bounding box: " + calculate_cable_length(x,y) + "\n\n");
 				
 		System.out.println("Theoretically, we are now done");
-		*/
 	}
 	public static void link_nodes(NeuralNet network){
 		int[] skeleton_keys = network.getKeys();
@@ -79,7 +87,7 @@ public class Main {
 		}
 		
 		//Sort so parent comes first
-		tree_counter = sort_array_by_row(tree_counter,2); //This array was reusable. During code optimization, reuse the first generation of this array
+		sort_array_by_row(tree_counter,2); //This array was reusable. During code optimization, reuse the first generation of this array
 		
 		//make the link to the parents from the child node, and keep a counter of how many children the parents have
 		Treenode root = treenodes[0]; //base case had parent as -1, which after sorting will always come first
@@ -138,12 +146,11 @@ public class Main {
 		
 	}
 	
-	public static int[][] sort_array_by_row(int[][] array, int row){ 
+	public static void sort_array_by_row(int[][] array, int row){ 
 		//sort array based on selected row
 		//This is an easy to code, though inefficient sorting method [O(n^2)]
 		//If code is running slowly, improve this algorithm first.
-			
-			
+		//Further, note that sorting by row A, then by row B, does not preserve internal sorting of row A 
 			for (int i = 0; i< array.length-1; i++){
 				for (int j = i+1; j<array.length; j++){
 					if(array[i][row] > array[j][row]){
@@ -158,9 +165,21 @@ public class Main {
 					}
 				}
 			}
-			return array;
 		}
-
+	
+	public static void sort_array(int[] array){
+		//Sorting algorithm (O(n^2), improve for efficiency)
+		for(int i = 0; i<array.length-1;i++){
+			for(int j = i+1; j<array.length; j++){
+				if(array[i] > array[j]){
+					int tmp = array[j];
+					array[j] = array[i];
+					array[i] = tmp;
+				}
+			}
+		}
+	}
+	
 	public static int[] calculate_bounding_box(Skeleton neuron){
 		Treenode[] tree = neuron.getTreenodes();
 		int[] box_coords = calculate_bounding_box(tree);
@@ -242,24 +261,16 @@ public class Main {
 	}
 	
 	public static void link_connectors(NeuralNet network){
-		//build a counter that stores the id and locations (within the neuron arrays) of all connector nodes
+		//Connector Counter structure:
+				// [0]: index in Skeleton[]
+				// [1]: index in Connector[]
+				// [2]: ID for skeleton
+				// [3]: ID for connector
+				// [4]: Flag for this connector to be merged with an existing one		
 		int[][] connector_counter = build_connector_counter(network);
-		
-		
-		
-		//build a new counter that merges duplicate entries (try not doing this)
-		int[][] merged_counter = merge_counter(connector_counter, network);
-		
-		//still to do: link the remaining nodes
-		
-		//Look at the contents of the nodes
-		for(int j = 0; j<merged_counter.length; j++){
-			for(int i = 0; i<merged_counter[0].length;i++){
-				System.out.print(merged_counter[j][i] + ", ");
-			} System.out.println();
-		} System.out.println("\n");
-		
-		
+				
+		//use this structure to link connectors to treenodes
+		link_connectors(connector_counter, network);
 		
 	}
 	
@@ -274,7 +285,7 @@ public class Main {
 		}
 		
 		//Second: build the array
-		int[][] connector_counter = new int[array_size][5]; 
+		int[][] connector_counter = new int[array_size][6]; 
 		int c_i = 0; //keep track of the next empty column in the connector array
 		for(int i = 0; i < skeleton_keys.length; i++){ //cycle through all neurons
 			Skeleton neuron = network.getSkeleton(i);
@@ -285,10 +296,11 @@ public class Main {
 				connector_counter[c_i][1] = j; //connector) because their positions in the array don't change 
 				connector_counter[c_i][2] = neuron.getId(); //row 2: skeleton id
 				connector_counter[c_i][3] = connector.getId(); //row 3: connector id
-				connector_counter[c_i][4] = 0; //row 4: is this a duplicate (0 if no, 1 if yes)
-				for(int k = 0; k < c_i; k++){ //change row 4 = 1 if the id for this node already exists
+				connector_counter[c_i][4] = 0; //row 4: is this a duplicate (0 if no, -1 if yes)
+				connector_counter[c_i][5] = 0; //row 5: reserved to map connector_counter to merged_counter
+				for(int k = 0; k < c_i; k++){ //change row 4 = -1 if the id for this node already exists
 					if (connector_counter[k][3]==connector_counter[c_i][3]){
-						connector_counter[c_i][4] = 1;
+						connector_counter[c_i][4] = -1;
 					}
 				}
 				c_i++;
@@ -297,81 +309,301 @@ public class Main {
 		return connector_counter;
 	}
 	
-	public static int[][] merge_counter(int[][] counter, NeuralNet network){
-		//determine new length (by shortening old length by 1 per duplicate node)
-		int array_size = counter.length; //base size of same size as old array
+	public static int[][] build_merged_counter(int[][] counter, NeuralNet network){
+		int m_array_size = counter.length; //base size of same size as old array
 		for(int i = 0; i<counter.length; i++){
-			array_size -= counter[i][4]; //shorten the array by 1 for every duplicate (row 4 in counter kept track of duplicates)
+			m_array_size += counter[i][4]; //shorten the array by 1 for every duplicate (row 4 in counter kept track of duplicates)
 		}
-		int[][] m_counter = new int[array_size][5];
-		int c_i = 0; //iterator that keeps track of next empty location in array
+		
+		int[][] m_counter = new int[m_array_size][6];
+		int m1_i = 0; //iterator that keeps track of next empty index in array
+		
 		//first place non-duplicates
 		for(int i = 0; i<counter.length; i++){
-			if(counter[i][4]==0){ /*don't handle duplicates yet*/ 
-				m_counter[c_i][4] = 0; //while we conveniently have this loop, initialize # of postsynapse connections at 0;
+			if(counter[i][4]==0){ //don't handle duplicates yet 
+				counter[i][5] = m1_i; //row 4 maps counter to m_counter (stays 0 if not 'original' value)
+				m_counter[m1_i][4] = 0; //while we conveniently have this loop, initialize # of postsynapse connections at 0;
+				m_counter[m1_i][5] = m1_i; //keeps track of index in case m_counter is sorted (these arrays are messes, fix them when your code works)
 				Connector connector = network.getSkeleton(counter[i][0]).getConnector(counter[i][1]); 
-				if(connector.getPresynaptic_to() != -1){ //if this node has information on the presynapse connection
-					m_counter[c_i][0] = counter[i][0]; //row 0: index for skeleton of presynaptic_to (i.e. parent node)
-					m_counter[c_i][1] = counter[i][1]; //row 1: index for connector of presynaptic_to 
-					m_counter[c_i][2] = counter[i][2]; //row 2: presynapse skeleton id
-					m_counter[c_i][3] = counter[i][3]; //row 3: presynapse connector id
+				if(connector.getPresynaptic_to() != null){ //if this node has information on the presynapse connection
+					m_counter[m1_i][0] = counter[i][0]; //row 0: index for skeleton of presynaptic_to (i.e. parent node)
+					m_counter[m1_i][1] = counter[i][1]; //row 1: index for connector of presynaptic_to 
+					m_counter[m1_i][2] = counter[i][2]; //row 2: skeleton id (for presynapse connection)
+					m_counter[m1_i][3] = counter[i][3]; //row 3: connector id
 				}
 				else{
-					m_counter[c_i][4] += 1; //row 4: number of postsynpase connections (this 
+					m_counter[m1_i][3] = counter[i][3]; //row 3: connector id
+					m_counter[m1_i][4] += connector.getPostsynaptic_to().length; //row 4: number of postsynpase connections
 				}
-				c_i++;
-			}
-		}
-		//now insert duplicates
-		int t_i = 0; //iterator that identifies which location is being currently manipulated
-		for(int i = 0; i<counter.length; i++){
-			if(counter[i][4]==1){ /*for duplicates*/ 
-				int id = counter[i][3];
-				t_i = 0; //reset t_i
-				while(counter[t_i][3]!=counter[i][3] && counter[t_i][4]==0){ //look for the instance where counter[t_i] was not labeled as the duplicate
-					t_i++;
-				}
-				Connector connector = network.getSkeleton(counter[i][0]).getConnector(counter[i][1]); 
-				if(connector.getPresynaptic_to() != -1){ //if this node has information on the presynapse connection
-					m_counter[t_i][0] = counter[i][0]; //row 0: index for skeleton of presynaptic_to (i.e. parent node)
-					m_counter[t_i][1] = counter[i][1]; //row 1: index for connector of presynaptic_to 
-					m_counter[t_i][2] = counter[i][2]; //row 2: presynapse skeleton id
-					m_counter[t_i][3] = counter[i][3]; //row 3: presynapse connector id
-				}
-				else{
-					m_counter[t_i][4] += 1; //row 4: number of postsynpase connections 
-				}
+				m1_i++;
 			}
 		}
 		return m_counter;
-=======
-		//Test creating neuron-network data structure using kc_pn_tree_geometry.json 
-		NeuralNet testnet = new NeuralNet(jsonData4);
-		System.out.println("");
-		System.out.println("Neurons by ID:");
-		int[] skeleton_keys = testnet.getKeys();
-		for(int i = 0; i < skeleton_keys.length; i++){
-			System.out.println(skeleton_keys[i]);
-		}
-		System.out.println("");
-		
-		//Test that connections made created
-		Skeleton neuron2 = testnet.getSkeleton(3);
-		int[] connectorKeys = neuron2.getConnectorKeys();
-		int[] treenodeKeys = neuron2.getTreenodeKeys();
-		System.out.println("Closer look at Neuron #" +neuron2.getId());
-		System.out.println("Connections:");
-		for(int i = 0; i < connectorKeys.length; i++){
-			System.out.println(connectorKeys[i]);
-		}
-		System.out.println("");
-		
-		//Test that treenodes are made
-		System.out.println("Treenodes:");
-		for(int i = 0; i < treenodeKeys.length; i++){
-			System.out.println(treenodeKeys[i]);
-		}
-		
->>>>>>> a39c4d64a72e34eea8f035c03f288d7b3b7dd9b5
 	}
+	
+	public static void link_connectors(int[][] counter, NeuralNet network){
+		//determine new length (by shortening old length by 1 per duplicate node)
+		//throughout this prefix m_* indicates the connectors are merged
+		//this function is pretty horrible if you're trying to follow by reading; I will update for readability in the future.
+		
+		int[][] m_counter = build_merged_counter(counter, network);
+		int m_array_size = m_counter.length;
+		
+		//now insert duplicates
+		int t_i = 0; //iterator that identifies which index is being manipulated
+		for(int i = 0; i<counter.length; i++){
+			if(counter[i][4]==-1){ //for duplicates
+				int id = counter[i][3];
+				t_i = 0; //reset t_i
+				while( !(counter[t_i][3]==counter[i][3] && counter[t_i][4]>-1) ){ //look for the instance where counter[t_i] is the same connector, but not labeled as the duplicate
+					t_i++; 
+				}
+				int m2_i = counter[t_i][4]; //this is where counter[t_i] was mapped to on m_counter
+				//we are merging the contents of counter[i] with counter[t_i]. Find where we put counter[t_i] in m_counter
+				Connector connector = network.getSkeleton(counter[i][0]).getConnector(counter[i][1]); 
+				if(connector.getPresynaptic_to() != null){ //if this node has information on the presynapse connection
+					m_counter[m2_i][0] = counter[i][0]; //row 0: index for skeleton of presynaptic_to (i.e. parent node)
+					m_counter[m2_i][1] = counter[i][1]; //row 1: index for connector of presynaptic_to 
+					m_counter[m2_i][2] = counter[i][2]; //row 2: skeleton id (for presynapse connection)
+					m_counter[m2_i][3] = counter[i][3]; //row 3: connector id
+				}
+				else{
+					m_counter[m2_i][3] = counter[i][3]; //row 3: connector id
+					m_counter[m2_i][4] += connector.getPostsynaptic_to().length; //row 4: number of postsynpase connections 
+				}
+			}
+		}
+		//Sorting here will make parts of the code later slightly faster (and easier to visualize in trouble-shooting)
+		sort_array_by_row(counter,3);
+		sort_array_by_row(m_counter,3);
+
+		Connector[] m_connectors = new Connector[m_array_size]; //the array is temporary, the connectors within them are permanent
+		
+		sort_array_by_row(m_counter,4);
+		
+		
+		for(int m3_i = 0; m3_i<m_array_size; m3_i++){ 
+			m_connectors[m3_i] = new Connector(m_counter[m3_i][3]); //finally build a connector with corresponding id
+			
+			//set presynapse treenode if possible
+			int id = m_counter[m3_i][3]; //row 3 is the unique connector ID
+			link_presynapse_node(network, counter, m_counter, id);
+			link_postsynapse_node(network, counter, m_counter, id);
+			make_node_main(network,counter,m_counter,id);
+//			link_connector(network,counter,m_counter,id);
+		}
+	}
+	
+	
+	public static void link_presynapse_node(NeuralNet network, int[][] counter, int[][] m_counter, int connector_id){
+		int param_conn_id = 3; //row in counter that has connector ID
+		int param_main_id = 4; //this row is -1 if the index is a repeat, and a positive number corresponding counter to m_counter if not
+		
+		//Find the node tagged as parent (not repeat)
+		int[] params = {param_conn_id, connector_id, param_main_id, 0}; //this value will be 0 if it's the 'original', or -1 if it's a repeat 
+		int c_parent = find_column_by_unique_value_array(counter, params);
+		int[] c_all = find_all_column_by_unique_value(counter, param_conn_id, connector_id);
+		
+		//The purpose of c_parent vs c_all is that there are multiple references to the same connector from different neurons. 
+		//c_parent indicates which one we will keep, but we need to merge the information from the other references onto this one.
+		//This is the easy part because connectors only have 1 (or zero) presynaptic connections.
+		
+		//(all references to this connector will be in columns (counter[c_all[i]][whichever value])
+		//Find the connector that has information on presynapse
+		//Set that information to the connector that will not be deleted
+		//then erase the presynaptic connector
+		for(int i = 0; i<c_all.length; i++){
+			int skel_ind = counter[c_all[i]][0];
+			int conn_ind = counter[c_all[i]][1];
+			Skeleton ref_skel = network.getSkeleton(skel_ind);
+			Connector ref_con = network.getSkeleton(skel_ind).getConnector(conn_ind);
+			if(ref_con.getPresynaptic_to()[1]>-1){
+				//Find the treenode to connect to 
+				int tr_skeleton_id = ref_con.getPresynaptic_to()[0];
+				int tr_treenode_id = ref_con.getPresynaptic_to()[1];
+				Treenode tr_presynap = network.getSkeletonById(tr_skeleton_id).getTreenodeById(tr_treenode_id);
+				
+				//Find our main connector
+				int co_skeleton_index = counter[c_parent][0]; //using the known index directly is faster than findSkeletonById, which requires a for-loop
+				int co_connector_index = counter[c_parent][1];
+				Connector co_main = network.getSkeleton(co_skeleton_index).getConnector(co_connector_index);
+				
+				//Assign presynaptic connection to the actual treenode
+				co_main.setPresynaptic_node(tr_presynap);
+				
+				//Copy info to main that might not already have been there
+				co_main.setPresynaptic_to(ref_con.getPresynaptic_to());
+				
+				//Redirect all references from ref to our main connector (this does nothing if ref was already the main connector)
+//				network.getSkeleton(skel_ind).setConnector(conn_ind, co_main); //do this after all pre/postsynapse nodes have been set
+			}	
+		}
+	}
+	
+	public static void link_postsynapse_node(NeuralNet network, int[][] counter, int[][] m_counter, int connector_id){
+		int param_conn_id = 3; //row in counter that has connector ID
+		int param_main_id = 4; //this row is -1 if the index is a repeat, and a positive number corresponding counter to m_counter if not
+		
+		//Find the node tagged as parent (not repeat)
+		int[] params = {param_conn_id, connector_id, param_main_id, 0}; //this value will be 0 if it's the 'original', or -1 if it's a repeat 
+		int c_parent = find_column_by_unique_value_array(counter, params);
+		int[] c_all = find_all_column_by_unique_value(counter, param_conn_id, connector_id);
+		
+		//The purpose of c_parent vs c_all is that there are multiple references to the same connector from different neurons. 
+		//c_parent indicates which one we will keep, but we need to merge the information from the other references onto this one.
+		//This is the hard part because connectors can have multiple postsynaptic connections.
+		
+		//(all references to this connector will be in columns (counter[c_all[i]][whichever value])
+		//Loop through all connectors that have information on postsynapse
+		//Set that information to the connector that will not be deleted
+		//then erase the postsynapse_connector
+		
+		
+		//Find our main connector
+		int co_skeleton_index = counter[c_parent][0]; //using the known index directly is faster than findSkeletonById, which requires a for-loop
+		int co_connector_index = counter[c_parent][1];
+		Connector co_main = network.getSkeleton(co_skeleton_index).getConnector(co_connector_index);
+		
+		System.out.println(co_main);
+		int s_i = 0; //determine the total number of postsynaptic nodes we're about to place
+		for(int i = 0; i<c_all.length; i++){ 
+			int skel_ind = counter[c_all[i]][0];
+			int conn_ind = counter[c_all[i]][1];
+			Skeleton ref_skel = network.getSkeleton(skel_ind);
+			Connector ref_con = network.getSkeleton(skel_ind).getConnector(conn_ind);
+			s_i += ref_con.getPostsynaptic_to().length;
+		} System.out.println(s_i);
+
+		
+		int p_i = 0; //Keep track of where to place the next connector in the array
+		int[][] postsynaptic_to = new int[s_i][2];
+		Treenode[] tr_postsynap_arr = new Treenode[s_i]; //initialize the treenode array so that we have somewhere to place our nodes
+
+		for(int i = 0; i<c_all.length; i++){
+			int skel_ind = counter[c_all[i]][0];
+			int conn_ind = counter[c_all[i]][1];
+			Skeleton ref_skel = network.getSkeleton(skel_ind);
+			Connector ref_con = network.getSkeleton(skel_ind).getConnector(conn_ind);
+			
+			
+			//loop through all connectors referenced in this node
+			for(int j = 0; j<ref_con.getPostsynaptic_to().length; j++){ //<--getPostsynaptic_to().length = 0 when there are no postsynapses
+				//Find the treenode to connect to 
+				int tr_skeleton_id = ref_con.getPostsynaptic_to()[j][0];
+				int tr_treenode_id = ref_con.getPostsynaptic_to()[j][1];
+				Treenode tr_postsynap = network.getSkeletonById(tr_skeleton_id).getTreenodeById(tr_treenode_id);
+				
+				System.out.print("Skeleton: " + skel_ind +  " Connector: " + ref_con + " Connector ID: " + ref_con.getId());
+				System.out.println(" Treenode: " + tr_postsynap + " treenode ID: " + tr_postsynap.getId());
+				
+				//Assign postsynaptic connection to the actual treenode
+				postsynaptic_to[p_i][0] = tr_skeleton_id;
+				postsynaptic_to[p_i][1] = tr_treenode_id;
+				tr_postsynap_arr[p_i]=tr_postsynap;
+				p_i++;
+			}	
+			//Copy info to main that might not already have been there
+//			co_main.setPostsynaptic_to(postsynaptic_to);
+			co_main.setPostsynaptic_node(tr_postsynap_arr);
+			//Redirect all references from ref to our main connector (this does nothing if ref was already the main connector)
+			network.getSkeleton(skel_ind).setConnector(conn_ind, co_main); //do this after presynapse nodes have been set
+		}
+	}
+	
+	public static void make_node_main(NeuralNet network,int[][] counter,int[][] m_counter,int connector_id){
+		int param_conn_id = 3; //row in counter that has connector ID
+		int param_main_id = 4; //this row is -1 if the index is a repeat, and 0 if not
+		
+		//Find the node tagged as parent (not repeat)
+		int[] params = {param_conn_id, connector_id, param_main_id, 0}; //this value will be 0 if it's the 'original', or -1 if it's a repeat 
+		int c_parent = find_column_by_unique_value_array(counter, params);
+		int[] c_all = find_all_column_by_unique_value(counter, param_conn_id, connector_id);
+		
+		for(int i = 0; i<c_all.length; i++){
+			if(counter[c_all[i]][param_main_id]>-1){
+				int skel_ind = counter[c_all[i]][0];
+				int conn_ind = counter[c_all[i]][1];
+				Skeleton ref_skel = network.getSkeleton(skel_ind);
+				Connector ref_con = network.getSkeleton(skel_ind).getConnector(conn_ind);
+				
+				//Find our main connector
+				int co_skeleton_index = counter[c_parent][0]; //using the known index directly is faster than findSkeletonById, which requires a for-loop
+				int co_connector_index = counter[c_parent][1];
+				Connector co_main = network.getSkeleton(co_skeleton_index).getConnector(co_connector_index);
+				
+				//Redirect all references from ref to our main connector (this does nothing if ref was already the main connector)
+				network.getSkeleton(skel_ind).setConnector(conn_ind, co_main); //do this after all pre/postsynapse nodes have been set
+			}	
+		}
+	}
+	
+	public static int find_column_by_unique_value(int[][] matrix, int row, int value){
+		for(int i = 0; i<matrix.length; i++){
+			if(matrix[i][row]==value){
+				return i; //return upon first finding
+			}
+		}
+		return -1; //if value never matched
+	}
+	
+	public static int find_column_by_unique_value_array(int[][] matrix, int[] params){
+		//Params{row_1, val_1, row_2, val_2, ...}
+		//Every pair of inputs is to find all columns with value [val] in row [row].
+		
+		
+		//calculate necessary size of an array that would pair all columns with any matching values
+		int column_size = 0;
+		for(int i = 0; i<params.length; i+=2){
+			column_size += find_all_column_by_unique_value(matrix, params[i],params[i+1]).length;
+		}
+		
+		//fill an array that returns all columns with a matching parameter pair
+		int next = 0;
+		int[] all_possible_columns = new int[column_size];
+		for(int i = 0; i<params.length; i+=2){
+			 int[] columns = find_all_column_by_unique_value(matrix, params[i],params[i+1]);
+			 for(int j = 0; j<columns.length;j++){
+				 all_possible_columns[next] = columns[j]; 
+				 next++;
+			 }
+		}
+		
+		//Find the column that had matched for every parameter
+		//To do this, sort the array and then find the where the value matches with all of the last [#params]
+		sort_array(all_possible_columns);
+		int param_quant = params.length/2;
+		
+		for(int i = param_quant-1; i<all_possible_columns.length; i++){
+			if(all_possible_columns[i] == all_possible_columns[i-(param_quant-1)]){
+				//If this value matches with all of the last, then we have succeeded in finding the column that matches all of our parameters!
+				return all_possible_columns[i];
+			}
+		}
+		return -1;
+		
+	}
+	
+	public static int[] find_all_column_by_unique_value(int[][] matrix, int row, int value){
+		int columnSize = 0;
+		for(int i = 0; i<matrix.length; i++){
+			if(matrix[i][row]==value){
+				columnSize++; //return upon first finding
+			}
+		}
+		if(columnSize == 0){
+			return null;
+		}
+		int c_i = 0;
+		int[] columnList = new int[columnSize];
+
+		for(int i = 0; i<matrix.length; i++){
+			if(matrix[i][row]==value){
+				columnList[c_i] = i;
+				c_i++;
+			}
+		}
+		return columnList; //null if nothing matched
+	}
+	
+	
 }

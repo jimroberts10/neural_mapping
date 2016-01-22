@@ -2,7 +2,6 @@ public class Skeleton {
 	private int id;
 	private Connector[] connectors;
 	private Treenode[] treenodes;
-	private int[] connectorKeys;
 	private int[] treenodeKeys;
 	
 	//set calls (currently for entire arrays only)
@@ -25,17 +24,9 @@ public class Skeleton {
 		//set an individual treenode
 		treenodes[i] = treenode;
 	}
-	public void setConnectorKeys(int[] connectorKeys){
-		this.connectorKeys = connectorKeys;
-	}
 	public void setTreenodeKeys(int[] treenodeKeys){
 		this.treenodeKeys = treenodeKeys;
 	}
-<<<<<<< HEAD
-	
-=======
-
->>>>>>> a39c4d64a72e34eea8f035c03f288d7b3b7dd9b5
 	
 	//Get calls (currently for entire arrays only)
 	public int getId(){
@@ -49,6 +40,14 @@ public class Skeleton {
 		//get all treenodes (as an array)
 		return treenodes;
 	}
+	public Treenode getTreenodeById(int id){
+		//for getting the skeleton by its ID
+		int i = 0; 
+		while(treenodes[i].getId()!=id){
+			i++;
+		}
+		return treenodes[i];
+	}
 	public Connector getConnector(int i){
 		//get connector at index i
 		return connectors[i];
@@ -57,9 +56,7 @@ public class Skeleton {
 		//get treenode at index i
 		return treenodes[i];
 	}
-	public int[] getConnectorKeys(){
-		return connectorKeys;
-	}
+	
 	public int[] getTreenodeKeys(){
 		return treenodeKeys;
 	}
@@ -68,7 +65,6 @@ public class Skeleton {
 	public Skeleton(int id){
 		this.id = id;
 	}
-<<<<<<< HEAD
 	 
 	//PRINT CONTENTS
 	public void printContents(){
@@ -78,7 +74,4 @@ public class Skeleton {
 		if(connectors.length>0){System.out.print("connectors: ");for(int i = 0; i<connectors.length-1; i++){System.out.print(connectors[i].getId() + ", ");}System.out.print(connectors[connectors.length-1].getId() + "\n");}
 		System.out.print("\n");
 	}
-=======
->>>>>>> a39c4d64a72e34eea8f035c03f288d7b3b7dd9b5
-	
 }
