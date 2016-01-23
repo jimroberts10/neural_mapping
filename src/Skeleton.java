@@ -1,77 +1,109 @@
+import java.util.ArrayList;
+
 public class Skeleton {
 	private int id;
-	private Connector[] connectors;
-	private Treenode[] treenodes;
-	private int[] treenodeKeys;
+	private ArrayList<Treenode> treenodes;
+	private ArrayList<Connector> connectors;
+	private ArrayList<Integer> treenode_id;
+	private ArrayList<Integer> connector_id;
 	
-	//set calls (currently for entire arrays only)
+	
+	//set-calls (currently for entire arrays only)
 	public void setId(int id){
 		this.id = id;
 	}
-	public void setConnectors(Connector[] connectors){
-		//set for an array of connectors
-		this.connectors = connectors;
-	}
-	public void setTreenodes(Treenode[] treenodes){
-		//set for an array of treenodes
+	public void setTreenode(ArrayList<Treenode> treenodes){
 		this.treenodes = treenodes;
 	}
-	public void setConnector(int i, Connector connector){
-		//set an individual connector
-		connectors[i] = connector;
-	}
 	public void setTreenode(int i, Treenode treenode){
-		//set an individual treenode
-		treenodes[i] = treenode;
+		this.treenodes.add(i, treenode);
 	}
-	public void setTreenodeKeys(int[] treenodeKeys){
-		this.treenodeKeys = treenodeKeys;
+	public void setTreenode(Treenode treenode){
+		this.treenodes.add(treenode);
+	}
+	public void setTreenode_id(ArrayList<Integer> treenode_id){
+		this.treenode_id = treenode_id;
+	}
+	public void setConnector(ArrayList<Connector> connectors){
+		this.connectors = connectors;
+	}
+	public void setConnector(int i, Connector connector){
+		this.connectors.add(i,connector);
+	}
+	public void setConnector(Connector connector){
+		this.connectors.add(connector);
+	}
+	public void setConnector_id(ArrayList<Integer> connector_id){
+		this.connector_id = connector_id;
 	}
 	
-	//Get calls (currently for entire arrays only)
+	//Get-calls (currently for entire arrays only)
 	public int getId(){
 		return id;
 	}
-	public Connector[] getConnectors(){
-		//get all connectors (as an array)
-		return connectors;
-	}
-	public Treenode[] getTreenodes(){
-		//get all treenodes (as an array)
+	public ArrayList<Treenode> getTreenode(){
 		return treenodes;
 	}
-	public Treenode getTreenodeById(int id){
-		//for getting the skeleton by its ID
-		int i = 0; 
-		while(treenodes[i].getId()!=id){
-			i++;
+	public Treenode getTreenode(int i){
+		return treenodes.get(i);
+	}
+	public Treenode getTreenodeById(int id){ //for getting the skeleton by its ID
+		for(Treenode node : treenodes){
+			if(node.getId()==id){
+				return(node);
+			}
 		}
-		return treenodes[i];
+		System.out.println("Warning: Could not find node #" + id + " in neuron #" + this.id);
+		return null; //return null if ID does not exist
+	}
+	public ArrayList<Connector> getConnector(){
+		return connectors;
 	}
 	public Connector getConnector(int i){
-		//get connector at index i
-		return connectors[i];
+		return connectors.get(i);
 	}
-	public Treenode getTreenode(int i){
-		//get treenode at index i
-		return treenodes[i];
-	}
-	
-	public int[] getTreenodeKeys(){
-		return treenodeKeys;
+	public Connector getConnectorById(int id){
+		for(Connector connector : connectors){
+			if(connector.getId()==id){
+				return(connector);
+			}
+		}
+		System.out.println("Warning: Could not find connector #" + id + " in neuron #" + this.id);
+		return null; //return null if ID does not exist
 	}
 	
 	//CONSTRUCTOR CLASS
 	public Skeleton(int id){
 		this.id = id;
 	}
-	 
+
+	public void link_treenodes(){
+		//O(n^2)
+		for(Treenode node: treenodes){
+			Integer p_i = node.getParent_id();
+			if(p_i!=null && p_i> -1){
+				Treenode parent = getTreenodeById(p_i);
+				node.setParent(parent);
+				parent.setChild(node);
+			}
+		}
+	}
+	
 	//PRINT CONTENTS
 	public void printContents(){
-		System.out.print("neuron #" + id + " consists of: " + treenodes.length + " nodes and " + connectors.length + " connectors:\n");
-		System.out.print("this matches the same value from keys: " + treenodes.length + " nodes and " + connectors.length + " connectors:\n");
-		if(treenodes.length>0){System.out.print("nodes: ");for(int i = 0; i<treenodes.length-1; i++){System.out.print(treenodes[i].getId() + ", ");}System.out.print(treenodes[treenodes.length-1].getId() + "\n");}
-		if(connectors.length>0){System.out.print("connectors: ");for(int i = 0; i<connectors.length-1; i++){System.out.print(connectors[i].getId() + ", ");}System.out.print(connectors[connectors.length-1].getId() + "\n");}
+		System.out.print("neuron #" + id + " consists of: " + treenodes.size() + " nodes and " + connectors.size() + " connectors:\n");
+		if(treenodes.size()>0){
+			System.out.print("nodes: ");
+			for(Treenode node : treenodes){
+				System.out.print(node.getId() + "\t");
+			} System.out.print("\n");
+		}
+		if(connectors.size()>0){
+			System.out.print("connectors: ");
+			for(Connector connector : connectors){
+				System.out.print(connector.getId() + "\t");
+			} System.out.print("\n");
+		}
 		System.out.print("\n");
 	}
 }
