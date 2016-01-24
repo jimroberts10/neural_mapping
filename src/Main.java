@@ -26,18 +26,28 @@ public class Main {
 		net3.printContents();
 		net4.printContents();
 		
-		Treenode ref = net3.getSkeleton(0).getTreenode(0);
-		Treenode jef = net3.getSkeleton(0).getTreenode(0);
+		Treenode ref = net3.getSkeleton(1).getTreenode(0);
+		Connector jim;
 		while(ref.getParent()!=null){
-			System.out.println("\nNext Parent Node: ");
 			ref = ref.getParent();
-			ref.printContents();
 		}
 		System.out.print("\n================================\n================================\n");
-		while(jef.getChild()!=null){
+		while(ref.getChild()!=null){
 			System.out.println("\nNext Child Node: ");
-			jef = jef.getChild(0);
-			jef.printContents();
+			ref = ref.getChild(0);
+			ref.printContents();
+			if(ref.getPresynaptic_connector()!=null){
+				jim = ref.getPresynaptic_connector();
+				if(jim.getPostsynaptic_node()!=null){
+					int skel_id = ref.getSkeleton_id();
+					ref = jim.getPostsynaptic_node(0);
+					System.out.println("JUMPING FROM NEURON #" + skel_id + " TO NEURON #" + ref.getSkeleton_id());
+					jim.printContents();
+					System.out.print("\n");
+					ref.printContents();
+					System.out.print("\n");
+				}
+			}
 		}
 	}
 }

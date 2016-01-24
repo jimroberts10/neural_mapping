@@ -63,8 +63,9 @@ public class NeuralNet {
 	//CONSTRUCTOR CLASS (takes in data from JSON file)	
 	public NeuralNet(File file){
 		load_to_classes(file); //Load JSON data into Java classes
-		
 		link_treenodes(); //Link treenodes in all neurons
+		link_connectors(); //Link connectors in all neurons
+		
 	}
 	
 	public void printContents(){
@@ -151,7 +152,7 @@ public class NeuralNet {
 		//Loop through each treenode individually and build the node
 		for(String co_id: co_keys){
 			JSONObject connector_obj = (JSONObject)connector_obj_list.get(co_id); //level 4, connector ##### (subelement: {"location", "presynaptic_to", "postsynaptic_to"})
-			Connector connector = new Connector(Integer.parseInt(co_id));
+			Connector connector = new Connector(Integer.parseInt(co_id), s_id);
 			initialize_connectors(connector, connector_obj, s_id); //put connector_obj data into connector
 			connector_id.add(Integer.parseInt(co_id));
 			connectors.add(connector);
@@ -162,8 +163,9 @@ public class NeuralNet {
 		skeleton.setConnector(connectors);
 		skeleton.setTreenode(treenodes);
 	}
-
+	
 	private void initialize_treenode(Treenode node, JSONObject treenode_obj){
+		//(this could be moved to Skeleton class)
 		/////Get Location and Parent ID data from the JSON Object 
 		//Location:
 		String location_str = treenode_obj.get("location").toString();
@@ -182,6 +184,7 @@ public class NeuralNet {
 	}
 	
 	private void initialize_connectors(Connector connector, JSONObject connector_obj, int s_id){
+		//(this could be moved to Skeleton class)
 		/////Get Location, Presynapse, and Postsynapse data from the JSON Object
 		//Location
 		String location_str = connector_obj.get("location").toString();
@@ -215,6 +218,102 @@ public class NeuralNet {
 	private void link_treenodes(){
 		for(Skeleton skeleton: this.skeletons){
 			skeleton.link_treenodes();
+		}
+	}
+
+	private void link_connectors(){
+		//initialize connector ArrayList 
+		ArrayList<Connector> connectors = new ArrayList<Connector>();
+		
+		//add all connectors, including repeats
+		load_connectors_from_skeletons(connectors);
+		
+		//merge duplicate connectors
+		remove_duplicate_connectors(connectors);
+		
+		//link connectors to nodes
+		link_connectors(connectors);
+	}
+	
+	private void load_connectors_from_skeletons(ArrayList<Connector> connectors){
+		//initialize connectors and add all connectors, including repeats
+		for(Skeleton skeleton: skeletons){
+			for(Connector con : skeleton.getConnector()){
+				connectors.add(con);
+			}
+		}
+	}
+
+	private void remove_duplicate_connectors(ArrayList<Connector> connectors){
+		//Compare each connector with each other connector
+		//If a connector [j] is a duplicate..
+		//  Merge contents [from j] into first occurence [i] (presyn/postsyn treenode info)
+		//  Redirect repeat occurence to the merged occurence in Skeleton [a = find(i); b = find(j); b.getparentSkel.setb(a)
+		//  Remove repeat occurence from connectors [connectors.remove(j)]
+		for(int i = 0; i<connectors.size()-1; i++){
+			for(int j = i+1; j<connectors.size(); j++){
+				if(connectors.get(i).getId()==connectors.get(j).getId()){ //j is a duplicate						
+					Connector conA = connectors.get(i);
+					Connector conB = connectors.get(j);
+					redirect_parent_skeleton(conA, conB);
+					merge_contents(conA, conB); 
+					conB.setTag_for_deletion(true);
+				}
+			}
+		}
+		//remove connectors from list
+		for(int i = 0; i<connectors.size(); i++){
+			if(connectors.get(i).getTag_for_deletion()==true){
+				connectors.remove(i);
+			}
+		}
+	}
+	
+	private void merge_contents(Connector conA, Connector conB){
+		//Add contents of presynaptic_to and postsynaptic_to from conB into conA
+		conA.addPresynaptic_to(conB.getPresynaptic_to());
+		conA.addPostsynaptic_to(conB.getPostsynaptic_to()); //Merge contents from j into i
+	}
+
+	private void redirect_parent_skeleton(Connector conA, Connector conB){
+		//Make change all references to conB to conA
+		int conB_id = conB.getId();
+		int skelB_id = conB.getSkeleton_id();
+		Skeleton skelB = getSkeletonById(skelB_id);  
+		int index = skelB.getConnectorIndex(conB_id);
+		skelB.setConnector(index, conA);
+	}
+	
+	private void link_connectors(ArrayList<Connector> connectors){
+		for(Connector con: connectors){
+			link_presynapses(con);
+			link_postsynapses(con);
+		}
+	}
+	
+	private void link_presynapses(Connector con){
+		Integer[] presynapse_to = con.getPresynaptic_to();
+		if(presynapse_to == null){ //don't do this part if there is no parent to connect to
+			return;
+		}
+		int skel_id = presynapse_to[1];
+		int node_id = presynapse_to[0];
+		Treenode node = getSkeletonById(skel_id).getTreenodeById(node_id);
+		con.setPresynaptic_node(node);
+		node.setPresynaptic_connector(con);
+	}
+	
+	private void link_postsynapses(Connector con){
+		ArrayList<Integer[]> postsynaptic_to = con.getPostsynaptic_to();
+		if(postsynaptic_to == null){
+			return;
+		}
+		for(Integer[] post : postsynaptic_to){
+			int skel_id = post[1];
+			int node_id = post[0];
+			Treenode node = getSkeletonById(skel_id).getTreenodeById(node_id);
+			con.addPostsynaptic_node(node);
+			node.setPostsynaptic_connector(con);
 		}
 	}
 	

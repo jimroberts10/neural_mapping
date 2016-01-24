@@ -71,6 +71,15 @@ public class Skeleton {
 		System.out.println("Warning: Could not find connector #" + id + " in neuron #" + this.id);
 		return null; //return null if ID does not exist
 	}
+	public int getConnectorIndex(int id){
+		for(int i = 0; i< connectors.size(); i++){
+			if(connectors.get(i).getId()==id){
+				return(i);
+			}
+		}
+		System.out.println("Warning: Could not find connector #" + id + " in neuron #" + this.id);
+		return -1; //return -1 if ID does not exist
+	}
 	
 	//CONSTRUCTOR CLASS
 	public Skeleton(int id){
