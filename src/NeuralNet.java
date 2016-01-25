@@ -55,6 +55,9 @@ public class NeuralNet {
 		}
 		return skeletons.get(i);
 	}
+	public ArrayList<Connector> getConnectors(){
+		return this.connectors;
+	}
 	
 	public void sortSkeleton(){
 		skeletons.sort(null);
@@ -233,6 +236,9 @@ public class NeuralNet {
 		
 		//link connectors to nodes
 		link_connectors(connectors);
+		
+		//Assign connectors to Neural net
+		this.connectors = connectors;
 	}
 	
 	private void load_connectors_from_skeletons(ArrayList<Connector> connectors){
