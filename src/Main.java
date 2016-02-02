@@ -1,10 +1,13 @@
+import java.awt.Toolkit;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
+import javax.swing.JFrame;
+
+import com.aqirna.d3obj.DDDTutorial;
+import com.aqirna.d3obj.Screen;
+
 
 
 public class Main {
@@ -27,15 +30,18 @@ public class Main {
 		net3.printContents();
 		net4.printContents();
 		
-		//Sanity test that everything is connected
-		//Pick a random node, check find parent nodes until you reach the root, then find child nodes, jumping from one skeleton to another when a connector has both a presynaptic and postsynaptic connection
-		//Print contents the whole way to check that parent and child nodes are connected, and connected to what they should be
 		connectionSanityTest1(net3);
 		int[] dump1 = calculateBoundingBox(net3.getSkeleton(0));
 		double dump2 = calculateTotalCableLength(net3.getSkeleton(0));
 		int dump3 = calculateConnectionsBetweenPairs(net3);
+		
+		NetViewer jimViewer = new NetViewer(net4);
 	}
+	
 	public static void connectionSanityTest1(NeuralNet network){
+		//Sanity test that everything is connected
+		//Pick a random node, check find parent nodes until you reach the root, then find child nodes, jumping from one skeleton to another when a connector has both a presynaptic and postsynaptic connection
+		//Print contents the whole way to check that parent and child nodes are connected, and connected to what they should be
 		Treenode ref = network.getSkeleton(1).getTreenode(0);
 		Connector con;
 		while(ref.getParent()!=null){
