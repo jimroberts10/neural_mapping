@@ -24,14 +24,18 @@ public class NetViewer extends JFrame{
 		
 		UserAction.setTVelocity(1000);
 		
+
+		//Screen.setSleepTime(sleepTime);
+		
 		loadNetwork(network.getSkeleton(0), Color.BLACK);
 		loadNetwork(network.getSkeleton(1), Color.BLUE);
-		loadNetwork(network.getSkeleton(2), Color.ORANGE);
-		loadNetwork(network.getSkeleton(3), Color.GREEN);
-		loadNetwork(network.getSkeleton(4), Color.RED);
-		loadNetwork(network.getSkeleton(5), Color.YELLOW);
-		loadNetwork(network.getSkeleton(6), Color.CYAN);
+//		loadNetwork(network.getSkeleton(2), Color.ORANGE);
+//		loadNetwork(network.getSkeleton(3), Color.GREEN);
+//		loadNetwork(network.getSkeleton(4), Color.RED);
+//		loadNetwork(network.getSkeleton(5), Color.YELLOW);
+//		loadNetwork(network.getSkeleton(6), Color.CYAN);
 
+//		loadConnectors(network.getConnectors(), Color.YELLOW, Color.GREEN);
 		for(int i = 0; i<linkArray.size(); i++){
 			DObjectModifier.add(linkArray.get(i));
 		}
@@ -60,6 +64,29 @@ public class NetViewer extends JFrame{
 			int[] d2 = child.getLocation();
 			makeDPolygon(d1,d2,c);
 			linkChild(child,c);
+		}
+	}
+	
+	public static void loadConnectors(ArrayList<Connector> connArray, Color c1, Color c2){
+		for(Connector conn: connArray){
+			linkConnector(conn, c1, c2);
+		}
+	}
+	
+	public static void linkConnector(Connector conn, Color c1, Color c2){
+		Treenode prenode = conn.getPresynaptic_node();
+		ArrayList<Treenode> postnode = conn.getPostsynaptic_node();
+		
+		int[]d1 = conn.getLocation();
+		if(prenode!=null){
+			int[]d2 = prenode.getLocation();
+			makeDPolygon(d1, d2, c1);
+		}
+		if(postnode!=null){
+			for(Treenode node : postnode){
+				int[]d2 = node.getLocation();
+				makeDPolygon(d1, d2, c2);
+			}
 		}
 	}
 	
