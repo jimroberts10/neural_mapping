@@ -11,5 +11,5 @@ Controls:
 
 Still a work in progress, running the code should start viewing the java applet (though if you try to load too much data at once, rather than lagging the program will fail too launch as the refresh rate is too fast for updates. ..this will be fixed in the next update).
 
-On launch, Zoom out (PgDn), or looking up and right ([^, >] on d-pad), to show the neuron that you can view and move around. 
+On launch, Zoom out (PgDn), or look up and right ([^, >] on d-pad), to show the neuron that you can view and move around. 
 
